@@ -56,12 +56,6 @@ blueprint:
           device:
             integration: mobile_app
             multiple: true
-      notify_signal:
-        name: Signal Notification Recipients
-        description: List of Numbers or Group ID's to send the notification to
-        selector:
-          text:
-            multiple: true
       notification_customization:
         name: Notifcation Customization
         icon: mdi:message-alert

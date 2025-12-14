@@ -340,14 +340,14 @@ actions:
             attachment:
               url: /api/frigate/notifications/{{ id }}/thumbnail.jpg
             image: /api/frigate/notifications/{{ id }}/thumbnail.jpg?format=android
-            clickAction: '{{ base_url }}:8123/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
+            clickAction: '{{ base_url }}/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
             push:
               interruption-level: active
             alert_once: '{{ alert_once }}'
             actions:
               - action: URI
                 title: View Clip
-                uri: '{{ base_url }}:8123/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
+                uri: '{{ base_url }}/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
               - action: URI
                 title: View Summary
                 uri: '{{ input_dashboard }}'
@@ -434,14 +434,14 @@ actions:
                     attachment:
                       url: /api/frigate/notifications/{{ id }}/thumbnail.jpg
                     image: /api/frigate/notifications/{{ id }}/thumbnail.jpg?format=android
-                    clickAction: '{{ base_url }}:8123/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
+                    clickAction: '{{ base_url }}/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
                     push:
                       interruption-level: active
                     alert_once: '{{ alert_once }}'
                     actions:
                       - action: URI
                         title: View Clip
-                        uri: '{{ base_url }}:8123/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
+                        uri: '{{ base_url }}/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
                       - action: URI
                         title: View Summary
                         uri: '{{ input_dashboard }}'
@@ -536,14 +536,14 @@ actions:
                   /api/frigate/notifications/{{ id }}/thumbnail.jpg
                 {% endif %}
             image: /api/frigate/notifications/{{ id }}/thumbnail.jpg?format=android
-            clickAction: '{{ base_url }}:8123/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
+            clickAction: '{{ base_url }}/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
             push:
               interruption-level: active
             alert_once: '{{ alert_once }}'
             actions:
               - action: URI
                 title: View Clip
-                uri: '{{ base_url }}:8123/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
+                uri: '{{ base_url }}/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
               - action: URI
                 title: View Summary
                 uri: '{{ input_dashboard }}'

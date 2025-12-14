@@ -62,12 +62,6 @@ blueprint:
         selector:
           text:
             multiple: true
-      notify_signal_service:
-        name: Signal Service Name
-        description: The notify service name for Signal Messenger (e.g., "signal" for notify.signal). Only needed if recipients are configured above.
-        default: "signal"
-        selector:
-          text: {}
       notification_customization:
         name: Notifcation Customization
         icon: mdi:message-alert

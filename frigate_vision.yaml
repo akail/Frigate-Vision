@@ -8,244 +8,244 @@ blueprint:
     '
   domain: automation
   input:
-      camera:
-        name: Frigate Camera Entity
-        description: The Frigate camera entity to monitor for events.
-        selector:
-          entity:
-            domain: [camera]
-            multiple: false
+    camera:
+      name: Frigate Camera Entity
+      description: The Frigate camera entity to monitor for events.
+      selector:
+        entity:
+          domain: [camera]
+          multiple: false
 
-      labels:
-        name: Labels to Notify On
-        description: List of Frigate object labels to notify on. Leave empty to match all.
-        default: [person]
-        selector:
-          select:
-            multiple: true
-            options:
-              - person
-              - dog
-              - cat
-              - car
-              - package
-              - bicycle
-              - face
-            sort: false
-            custom_value: false
+    labels:
+      name: Labels to Notify On
+      description: List of Frigate object labels to notify on. Leave empty to match all.
+      default: [person]
+      selector:
+        select:
+          multiple: true
+          options:
+            - person
+            - dog
+            - cat
+            - car
+            - package
+            - bicycle
+            - face
+          sort: false
+          custom_value: false
 
-      helper:
-        name: Helper
-        description: Input Boolean helper used for multi-camera logic.
-        selector:
-          entity:
-            domain: [input_boolean]
-            multiple: false
+    helper:
+      name: Helper
+      description: Input Boolean helper used for multi-camera logic.
+      selector:
+        entity:
+          domain: [input_boolean]
+          multiple: false
 
-      cooldown:
-        name: Cooldown
-        description: Minimum time between notifications.
-        selector:
-          duration:
-            enable_day: true
+    cooldown:
+      name: Cooldown
+      description: Minimum time between notifications.
+      selector:
+        duration:
+          enable_day: true
 
-      notify_device:
-        name: Mobile Device
-        description: Select the phone or tablet (with the Home Assistant app) to receive the notification.
-        selector:
-          device:
-            integration: mobile_app
-            multiple: true
-      notification_customization:
-        name: Notifcation Customization
-        icon: mdi:message-alert
-        description: Configure optional nofitication features
-        collapsed: true
-        input:        
-          ios_live_view:
-            name: iOS Notification
-            description: Enable if the target device runs iOS for enhanced notification support.
-            default: false
-            selector:
-              boolean: {}
-              
-          append:
-            name: Append Camera
-            description: Add the word "Camera" to the end of the camera name (e.g., "Back Yard" becomes "Back Yard Camera").
-            default: false
-            selector:
-              boolean: {}
+    notify_device:
+      name: Mobile Device
+      description: Select the phone or tablet (with the Home Assistant app) to receive the notification.
+      selector:
+        device:
+          integration: mobile_app
+          multiple: true
+    notification_customization:
+      name: Notifcation Customization
+      icon: mdi:message-alert
+      description: Configure optional nofitication features
+      collapsed: true
+      input:        
+        ios_live_view:
+          name: iOS Notification
+          description: Enable if the target device runs iOS for enhanced notification support.
+          default: false
+          selector:
+            boolean: {}
+            
+        append:
+          name: Append Camera
+          description: Add the word "Camera" to the end of the camera name (e.g., "Back Yard" becomes "Back Yard Camera").
+          default: false
+          selector:
+            boolean: {}
     
-          expand:
-            name: Expand Cam
-            description: Replace "Cam" with "Camera" in the camera name (e.g., "Back Yard Cam" becomes "Back Yard Camera").
-            default: false
-            selector:
-              boolean: {}
+        expand:
+          name: Expand Cam
+          description: Replace "Cam" with "Camera" in the camera name (e.g., "Back Yard Cam" becomes "Back Yard Camera").
+          default: false
+          selector:
+            boolean: {}
     
-          dashboard:
-            name: Event Summary Dashboard
-            description: URI to open when the "View Summary" action is clicked.
-            default:
-            selector:
-              text: {}
-              
-      llmvision_tweaks:
-        name: LLMVision Tweaks
-        icon: mdi:brain
-        description: Tweak LLMVision settings and options
-        collapsed: true
-        input:        
-          generate_title:
-            name: Generate Event Title
-            description: Enable to generate a dynamic title for each event summary.
-            default: true
-            selector:
-              boolean: {}
+        dashboard:
+          name: Event Summary Dashboard
+          description: URI to open when the "View Summary" action is clicked.
+          default:
+          selector:
+            text: {}
+            
+    llmvision_tweaks:
+      name: LLMVision Tweaks
+      icon: mdi:brain
+      description: Tweak LLMVision settings and options
+      collapsed: true
+      input:        
+        generate_title:
+          name: Generate Event Title
+          description: Enable to generate a dynamic title for each event summary.
+          default: true
+          selector:
+            boolean: {}
 
-          include_filename:
-            name: Include Filenames
-            description: Attach filenames when sending Frigate clips.
-            default: false
-            selector:
-              boolean: {}
+        include_filename:
+          name: Include Filenames
+          description: Attach filenames when sending Frigate clips.
+          default: false
+          selector:
+            boolean: {}
 
-          expose_images:
-            name: Expose Images
-            description: Save analyzed frames to `/www/llmvision` for use in notifications. File paths will be included in the LLM response.
-            default: true
-            selector:
-              boolean: {}
-              
-          provider:
-            name: Provider
-            description: Choose the LLMVision provider. See documentation for supported options.
-            selector:
-              config_entry:
-                integration: llmvision
+        expose_images:
+          name: Expose Images
+          description: Save analyzed frames to `/www/llmvision` for use in notifications. File paths will be included in the LLM response.
+          default: true
+          selector:
+            boolean: {}
+            
+        provider:
+          name: Provider
+          description: Choose the LLMVision provider. See documentation for supported options.
+          selector:
+            config_entry:
+              integration: llmvision
 
-          model:
-            name: Model
-            description: Language model to use. Depends on the selected provider.
-            default: gemini-2.0-flash
-            selector:
-              text:
-                multiline: false
-                multiple: false
+        model:
+          name: Model
+          description: Language model to use. Depends on the selected provider.
+          default: gemini-2.0-flash
+          selector:
+            text:
+              multiline: false
+              multiple: false
 
-          prompt:
-            name: LLMVision Prompt
-            description: Customize the prompt used to generate event summaries.
-            default: Summarize the observed events using clear, neutral third-person language. Use timestamps to ensure the summary follows the correct chronological order. Focus on moving subjects such as people, vehicles, animals, packages, equipment, or other active elements. Ignore static background objects unless directly interacted with. Include stationary vehicles only if they are clearly identifiable as delivery or emergency vehicles, mentioning any visible company names or uniform details. Describe activity relevant to the general monitored area without referencing camera angles, timestamps, or observers. Present the events as if witnessed in real time, avoiding frame-by-frame descriptions or introductory phrases. Summarize naturally in a single, cohesive narrative, keeping it concise and suitable for brief notifications. When context strongly suggests a likely outcome, describe it confidently. Do not mention the absence of activity or objects, nor conclude with statements about what was or wasn’t observed.
-            selector:
-              text:
-                multiline: true
-                multiple: false
+        prompt:
+          name: LLMVision Prompt
+          description: Customize the prompt used to generate event summaries.
+          default: Summarize the observed events using clear, neutral third-person language. Use timestamps to ensure the summary follows the correct chronological order. Focus on moving subjects such as people, vehicles, animals, packages, equipment, or other active elements. Ignore static background objects unless directly interacted with. Include stationary vehicles only if they are clearly identifiable as delivery or emergency vehicles, mentioning any visible company names or uniform details. Describe activity relevant to the general monitored area without referencing camera angles, timestamps, or observers. Present the events as if witnessed in real time, avoiding frame-by-frame descriptions or introductory phrases. Summarize naturally in a single, cohesive narrative, keeping it concise and suitable for brief notifications. When context strongly suggests a likely outcome, describe it confidently. Do not mention the absence of activity or objects, nor conclude with statements about what was or wasn’t observed.
+          selector:
+            text:
+              multiline: true
+              multiple: false
 
-          max_tokens:
-            name: Maximum Tokens
-            description: Limit the number of tokens used in the summary (controls length).
-            default: 20
-            selector:
-              number:
-                min: 1.0
-                max: 100.0
-                mode: slider
-                step: 1.0
+        max_tokens:
+          name: Maximum Tokens
+          description: Limit the number of tokens used in the summary (controls length).
+          default: 20
+          selector:
+            number:
+              min: 1.0
+              max: 100.0
+              mode: slider
+              step: 1.0
 
-          temperature:
-            name: Temperature
-            description: Adjusts response randomness. Lower values yield more accurate, consistent results; higher values are more creative.
-            default: 0.1
-            selector:
-              number:
-                min: 0.1
-                max: 1.0
-                step: 0.1
-                mode: slider
-              
-          max_frames:
-            name: Total Frames
-            description: Number of frames to analyze from the event.
-            default: 3
-            selector:
-              number:
-                min: 1.0
-                max: 60.0
-                mode: slider
-                step: 1.0
+        temperature:
+          name: Temperature
+          description: Adjusts response randomness. Lower values yield more accurate, consistent results; higher values are more creative.
+          default: 0.1
+          selector:
+            number:
+              min: 0.1
+              max: 1.0
+              step: 0.1
+              mode: slider
+            
+        max_frames:
+          name: Total Frames
+          description: Number of frames to analyze from the event.
+          default: 3
+          selector:
+            number:
+              min: 1.0
+              max: 60.0
+              mode: slider
+              step: 1.0
 
-          frigate_retry_attempts:
-            name: Retry Attempts
-            description: Number of retry attempts if the Frigate clip isn’t ready.
-            selector:
-              number:
-                min: 1.0
-                max: 20.0
-                mode: slider
-                step: 1.0
+        frigate_retry_attempts:
+          name: Retry Attempts
+          description: Number of retry attempts if the Frigate clip isn’t ready.
+          selector:
+            number:
+              min: 1.0
+              max: 20.0
+              mode: slider
+              step: 1.0
 
-          frigate_retry_time:
-            name: Retry Timing
-            description: How long to keep retrying the LLM request if the clip isn't ready.
-            selector:
-              duration: {}
-              
-          target_width:
-            name: Target Width
-            description: Downscale frame width to reduce token usage and speed up processing.
-            default: 1920
-            selector:
-              number:
-                min: 480.0
-                max: 3840.0
-                mode: slider
-                step: 20.0
-              
-      advanced_options:
-        name: Advanced Options
-        icon: mdi:cog
-        description: Customize Frigate, HomeAssistant, and other details
-        collapsed: true
-        input:
-          sublabel:
-            name: Sublabels
-            description: Include Frigate sublabels in the prompt if available.
-            default: true
-            selector:
-              boolean: {}          
+        frigate_retry_time:
+          name: Retry Timing
+          description: How long to keep retrying the LLM request if the clip isn't ready.
+          selector:
+            duration: {}
+            
+        target_width:
+          name: Target Width
+          description: Downscale frame width to reduce token usage and speed up processing.
+          default: 1920
+          selector:
+            number:
+              min: 480.0
+              max: 3840.0
+              mode: slider
+              step: 20.0
+            
+    advanced_options:
+      name: Advanced Options
+      icon: mdi:cog
+      description: Customize Frigate, HomeAssistant, and other details
+      collapsed: true
+      input:
+        sublabel:
+          name: Sublabels
+          description: Include Frigate sublabels in the prompt if available.
+          default: true
+          selector:
+            boolean: {}          
 
-          base_url:
-            name: External Base URL
-            description: Public domain or IP of your Home Assistant server for accessing media externally.
-            default: https://your.ddns
-            selector:
-              text: {}
+        base_url:
+          name: External Base URL
+          description: Public domain or IP of your Home Assistant server for accessing media externally.
+          default: https://your.ddns
+          selector:
+            text: {}
 
-          local_url:
-            name: Internal Base URL
-            description: Local IP address of your Home Assistant instance.
-            default: http://192.168.250.1
-            selector:
-              text: {}
-          debug:
-            name: Debugging
-            description: Enable debug logging for this automation.
-            default: false
-            selector:
-              boolean: {}
-              
-          notification_timeout:
-            name: Notification Timeout (minutes)
-            description: Time before Android automatically clears the notification
-            default: 10
-            selector:
-              number:
-                min: 1.0
-                max: 120.0
-                step: 1.0
-                unit_of_measurement: minutes
-                mode: slider
+        local_url:
+          name: Internal Base URL
+          description: Local IP address of your Home Assistant instance.
+          default: http://192.168.250.1
+          selector:
+            text: {}
+        debug:
+          name: Debugging
+          description: Enable debug logging for this automation.
+          default: false
+          selector:
+            boolean: {}
+            
+        notification_timeout:
+          name: Notification Timeout (minutes)
+          description: Time before Android automatically clears the notification
+          default: 10
+          selector:
+            number:
+              min: 1.0
+              max: 120.0
+              step: 1.0
+              unit_of_measurement: minutes
+              mode: slider
 
   source_url: https://github.com/zacharyd3/Frigate-Vision/blob/main/frigate_vision.yaml
 trigger_variables:

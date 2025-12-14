@@ -306,8 +306,6 @@ actions:
     object: '{{ trigger.payload_json[''after''][''label''] }}'
     label: '{{ object | title }}'
     raw_device: !input notify_device
-    notify_signal_recipients: !input notify_signal
-    input_notify_signal_service: !input notify_signal_service
     camera_name: "{% set name = camera | replace('_', ' ') | title %} {% if input_expand
       %}\n  {% set name = name | regex_replace('(?i)\\\\bcam\\\\b', 'Camera') %}\n{%
       endif %} {{ name ~ (' Camera' if input_append else '') }}\n"

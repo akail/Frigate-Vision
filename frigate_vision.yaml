@@ -56,6 +56,18 @@ blueprint:
           device:
             integration: mobile_app
             multiple: true
+      notify_signal:
+        name: Signal Notification Recipients
+        description: List of Numbers or Group ID's to send the notification to
+        selector:
+          text:
+            multiple: true
+      notify_signal_service:
+        name: Signal Service Name
+        description: The notify service name for Signal Messenger (e.g., "signal" for notify.signal). Only needed if recipients are configured above.
+        default: "signal"
+        selector:
+          text: {}
       notification_customization:
         name: Notifcation Customization
         icon: mdi:message-alert
@@ -294,6 +306,8 @@ actions:
     object: '{{ trigger.payload_json[''after''][''label''] }}'
     label: '{{ object | title }}'
     raw_device: !input notify_device
+    notify_signal_recipients: !input notify_signal
+    input_notify_signal_service: !input notify_signal_service
     camera_name: "{% set name = camera | replace('_', ' ') | title %} {% if input_expand
       %}\n  {% set name = name | regex_replace('(?i)\\\\bcam\\\\b', 'Camera') %}\n{%
       endif %} {{ name ~ (' Camera' if input_append else '') }}\n"
@@ -354,6 +368,21 @@ actions:
               - action: URI
                 title: Open Frigate
                 uri: '{{ base_url }}:8971/review'
+- alias: Signal - Initial Detection
+  condition: template
+  value_template: "{{ notify_signal_recipients | length > 0 }}"
+- service: notify.{{ input_notify_signal_service }}
+  data:
+    message: |
+      {{ message }}
+
+      Clip: {{ clip_url }}
+      {% if input_dashboard %}Summary: {{ input_dashboard }}
+      {% endif %}Frigate: {{ base_url }}:8971/review
+    target: "{{ notify_signal_recipients }}"
+    data:
+      urls:
+        - "{{ base_url }}/api/frigate/notifications/{{ id }}/thumbnail.jpg"
 - repeat:
     sequence:
     - wait_for_trigger:
@@ -448,6 +477,21 @@ actions:
                       - action: URI
                         title: Open Frigate
                         uri: '{{ base_url }}:8971/review'
+        - alias: Signal - Update Notification
+          condition: template
+          value_template: "{{ notify_signal_recipients | length > 0 }}"
+        - service: notify.{{ input_notify_signal_service }}
+          data:
+            message: |
+              {% if title %}{{ title }}{% else %}{{ message }}{% endif %}
+
+              Clip: {{ clip_url }}
+              {% if input_dashboard %}Summary: {{ input_dashboard }}
+              {% endif %}Frigate: {{ base_url }}:8971/review
+            target: "{{ notify_signal_recipients }}"
+            data:
+              urls:
+                - "{{ base_url }}/api/frigate/notifications/{{ id }}/thumbnail.jpg"
     until:
     - condition: template
       value_template: '{{ not wait.trigger or wait.trigger.payload_json[''type'']
@@ -550,5 +594,20 @@ actions:
               - action: URI
                 title: Open Frigate
                 uri: '{{ base_url }}:8971/review'
+- alias: Signal - Final AI Summary
+  condition: template
+  value_template: "{{ notify_signal_recipients | length > 0 }}"
+- service: notify.{{ input_notify_signal_service }}
+  data:
+    message: |
+      {{ message }}
+
+      Clip: {{ clip_url }}
+      {% if input_dashboard %}Summary: {{ input_dashboard }}
+      {% endif %}Frigate: {{ base_url }}:8971/review
+    target: "{{ notify_signal_recipients }}"
+    data:
+      urls:
+        - "{{ base_url }}/api/frigate/notifications/{{ id }}/thumbnail.jpg"
 - delay: '{{ input_cooldown }}'
 mode: single

@@ -368,23 +368,6 @@ actions:
               - action: URI
                 title: Open Frigate
                 uri: '{{ base_url }}:8971/review'
-- alias: Signal - Initial Detection
-  if:
-    - condition: template
-      value_template: "{{ notify_signal_recipients | length > 0 }}"
-  then:
-    - service: notify.{{ input_notify_signal_service }}
-      data:
-        message: |
-          {{ message }}
-
-          Clip: {{ clip_url }}
-          {% if input_dashboard %}Summary: {{ input_dashboard }}
-          {% endif %}Frigate: {{ base_url }}:8971/review
-        target: "{{ notify_signal_recipients }}"
-        data:
-          urls:
-            - "{{ base_url }}/api/frigate/notifications/{{ id }}/thumbnail.jpg"
 - repeat:
     sequence:
     - wait_for_trigger:
@@ -479,23 +462,6 @@ actions:
                       - action: URI
                         title: Open Frigate
                         uri: '{{ base_url }}:8971/review'
-        - alias: Signal - Update Notification
-          if:
-            - condition: template
-              value_template: "{{ notify_signal_recipients | length > 0 }}"
-          then:
-            - service: notify.{{ input_notify_signal_service }}
-              data:
-                message: |
-                  {% if title %}{{ title }}{% else %}{{ message }}{% endif %}
-
-                  Clip: {{ clip_url }}
-                  {% if input_dashboard %}Summary: {{ input_dashboard }}
-                  {% endif %}Frigate: {{ base_url }}:8971/review
-                target: "{{ notify_signal_recipients }}"
-                data:
-                  urls:
-                    - "{{ base_url }}/api/frigate/notifications/{{ id }}/thumbnail.jpg"
     until:
     - condition: template
       value_template: '{{ not wait.trigger or wait.trigger.payload_json[''type'']
@@ -598,22 +564,5 @@ actions:
               - action: URI
                 title: Open Frigate
                 uri: '{{ base_url }}:8971/review'
-- alias: Signal - Final AI Summary
-  if:
-    - condition: template
-      value_template: "{{ notify_signal_recipients | length > 0 }}"
-  then:
-    - service: notify.{{ input_notify_signal_service }}
-      data:
-        message: |
-          {{ message }}
-
-          Clip: {{ clip_url }}
-          {% if input_dashboard %}Summary: {{ input_dashboard }}
-          {% endif %}Frigate: {{ base_url }}:8971/review
-        target: "{{ notify_signal_recipients }}"
-        data:
-          urls:
-            - "{{ base_url }}/api/frigate/notifications/{{ id }}/thumbnail.jpg"
 - delay: '{{ input_cooldown }}'
 mode: single

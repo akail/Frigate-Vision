@@ -50,11 +50,11 @@ I’ve since spent time crafting what I felt was the ultimate smart notification
 
 Signal is entirely optional; leave the Signal fields blank and the blueprint only uses the mobile app. When enabled, you get the same three notifications the mobile app does: initial detection, mid-event updates, and the final AI summary.
 
-**Signal is off unless you either fill in *Signal Service Name* or pick a *Signal Notify Entity*.** Listing recipients on their own does nothing.
+**Signal is off unless you fill in *Signal Service Name*.** Listing recipients on their own does nothing.
 
-#### The usual setup (legacy notify platform)
+#### Setup
 
-The core Signal Messenger integration is configured in YAML and registers a `notify.<name>` action rather than an entity:
+The core Signal Messenger integration is configured in YAML and registers a `notify.<name>` action:
 
 ```yaml
 # configuration.yaml
@@ -69,13 +69,11 @@ notify:
 
 In the blueprint, set **Signal Service Name** to `signal` (the `name:` you used above, with or without the `notify.` prefix). That's it, no recipients needed; messages go to the `recipients:` already configured on the platform. Use **Signal Notification Recipients** only when you want to override that list for this automation.
 
-This path attaches the event snapshot to the message.
+The event snapshot is attached to the message.
 
-#### Signal Notify Entity (dropdown)
+#### Why is this a text field and not a dropdown?
 
-**Signal Notify Entity** is a picker filtered to the `notify` domain. Be aware that the core `signal_messenger` integration is a *legacy* notify platform and **will not appear in this dropdown**; Home Assistant has no selector capable of listing legacy notify actions. Use this field only if your Signal setup exposes a real notify entity, or you have wrapped one yourself.
-
-When an entity is selected it takes precedence over the service name, and messages are sent via `notify.send_message`. That action supports text only, so **the snapshot image is omitted** on this path.
+Signal Messenger is a *legacy* notify platform: it registers a `notify.<name>` action but creates no entity. Home Assistant has no selector that can enumerate notify actions ([WTH is there no notify selector](https://community.home-assistant.io/t/wth-is-there-no-notify-selector/467457)), and an entity picker filtered to the `notify` domain would list unrelated things like your phone while never showing Signal. So the service name is typed by hand.
 
 ---
 

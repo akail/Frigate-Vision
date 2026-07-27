@@ -56,18 +56,45 @@ blueprint:
           device:
             integration: mobile_app
             multiple: true
+      notify_signal_entity:
+        name: Signal Notify Entity
+        description: >-
+          Pick a notify entity to send Signal messages through. Note that the
+          core Signal Messenger integration is a legacy notify platform and does
+          NOT create entities - it will not appear here. Use this only if your
+          Signal setup exposes a notify entity (or you have wrapped it in one).
+          Entities are sent via notify.send_message, which supports text only,
+          so the snapshot image is omitted on this path. Leave empty to use the
+          legacy service name below.
+        default: []
+        selector:
+          entity:
+            multiple: true
+            filter:
+              - domain: notify
+      notify_signal_service:
+        name: Signal Service Name (legacy)
+        description: >-
+          The notify action name for Signal Messenger, e.g. "signal" for
+          notify.signal. Set this to enable Signal notifications without having
+          to list any recipients - the messages go to the recipients already
+          configured on that notify platform. Leave blank (and pick no entity
+          above) to disable Signal entirely.
+        default: ""
+        selector:
+          text: {}
       notify_signal:
         name: Signal Notification Recipients
-        description: List of Numbers or Group ID's to send the notification to
+        description: >-
+          Optional override. List of numbers or Group IDs to send the
+          notification to. Leave empty to use the recipients already configured
+          on the notify service itself. Requires the Signal Service Name above
+          to be set - this field alone does not enable Signal. Ignored when a
+          Signal notify entity is selected above.
+        default: []
         selector:
           text:
             multiple: true
-      notify_signal_service:
-        name: Signal Service Name
-        description: The notify service name for Signal Messenger (e.g., "signal" for notify.signal). Only needed if recipients are configured above.
-        default: "signal"
-        selector:
-          text: {}
       notification_customization:
         name: Notifcation Customization
         icon: mdi:message-alert
@@ -307,7 +334,12 @@ actions:
     label: '{{ object | title }}'
     raw_device: !input notify_device
     notify_signal_recipients: !input notify_signal
+    notify_signal_entities: !input notify_signal_entity
     input_notify_signal_service: !input notify_signal_service
+    signal_service: "{{ 'notify.' ~ (input_notify_signal_service | trim | replace('notify.',
+      '')) }}"
+    signal_enabled: '{{ notify_signal_entities | length > 0 or (input_notify_signal_service
+      | trim) != '''' }}'
     camera_name: "{% set name = camera | replace('_', ' ') | title %} {% if input_expand
       %}\n  {% set name = name | regex_replace('(?i)\\\\bcam\\\\b', 'Camera') %}\n{%
       endif %} {{ name ~ (' Camera' if input_append else '') }}\n"
@@ -371,20 +403,34 @@ actions:
 - alias: Signal - Initial Detection
   if:
     - condition: template
-      value_template: "{{ notify_signal_recipients | length > 0 }}"
+      value_template: "{{ signal_enabled }}"
   then:
-    - service: notify.{{ input_notify_signal_service }}
-      data:
-        message: |
+    - variables:
+        signal_message: |
           {{ message }}
 
           Clip: {{ clip_url }}
           {% if input_dashboard %}Summary: {{ input_dashboard }}
-          {% endif %}Frigate: {{ base_url }}:8971/review
-        target: "{{ notify_signal_recipients }}"
-        data:
-          urls:
-            - "{{ base_url }}/api/frigate/notifications/{{ id }}/thumbnail.jpg"
+          {% endif %}
+    - choose:
+        - alias: Signal via notify entity
+          conditions:
+            - condition: template
+              value_template: "{{ notify_signal_entities | length > 0 }}"
+          sequence:
+            - service: notify.send_message
+              target:
+                entity_id: "{{ notify_signal_entities }}"
+              data:
+                message: "{{ signal_message }}"
+      default:
+        - service: "{{ signal_service }}"
+          data:
+            message: "{{ signal_message }}"
+            target: "{{ notify_signal_recipients }}"
+            data:
+              urls:
+                - "{{ base_url }}/api/frigate/notifications/{{ id }}/thumbnail.jpg"
 - repeat:
     sequence:
     - wait_for_trigger:
@@ -482,20 +528,34 @@ actions:
         - alias: Signal - Update Notification
           if:
             - condition: template
-              value_template: "{{ notify_signal_recipients | length > 0 }}"
+              value_template: "{{ signal_enabled }}"
           then:
-            - service: notify.{{ input_notify_signal_service }}
-              data:
-                message: |
+            - variables:
+                signal_message: |
                   {% if title %}{{ title }}{% else %}{{ message }}{% endif %}
 
                   Clip: {{ clip_url }}
                   {% if input_dashboard %}Summary: {{ input_dashboard }}
-                  {% endif %}Frigate: {{ base_url }}:8971/review
-                target: "{{ notify_signal_recipients }}"
-                data:
-                  urls:
-                    - "{{ base_url }}/api/frigate/notifications/{{ id }}/thumbnail.jpg"
+                  {% endif %}
+            - choose:
+                - alias: Signal via notify entity
+                  conditions:
+                    - condition: template
+                      value_template: "{{ notify_signal_entities | length > 0 }}"
+                  sequence:
+                    - service: notify.send_message
+                      target:
+                        entity_id: "{{ notify_signal_entities }}"
+                      data:
+                        message: "{{ signal_message }}"
+              default:
+                - service: "{{ signal_service }}"
+                  data:
+                    message: "{{ signal_message }}"
+                    target: "{{ notify_signal_recipients }}"
+                    data:
+                      urls:
+                        - "{{ base_url }}/api/frigate/notifications/{{ id }}/thumbnail.jpg"
     until:
     - condition: template
       value_template: '{{ not wait.trigger or wait.trigger.payload_json[''type'']
@@ -601,19 +661,33 @@ actions:
 - alias: Signal - Final AI Summary
   if:
     - condition: template
-      value_template: "{{ notify_signal_recipients | length > 0 }}"
+      value_template: "{{ signal_enabled }}"
   then:
-    - service: notify.{{ input_notify_signal_service }}
-      data:
-        message: |
+    - variables:
+        signal_message: |
           {{ message }}
 
           Clip: {{ clip_url }}
           {% if input_dashboard %}Summary: {{ input_dashboard }}
-          {% endif %}Frigate: {{ base_url }}:8971/review
-        target: "{{ notify_signal_recipients }}"
-        data:
-          urls:
-            - "{{ base_url }}/api/frigate/notifications/{{ id }}/thumbnail.jpg"
+          {% endif %}
+    - choose:
+        - alias: Signal via notify entity
+          conditions:
+            - condition: template
+              value_template: "{{ notify_signal_entities | length > 0 }}"
+          sequence:
+            - service: notify.send_message
+              target:
+                entity_id: "{{ notify_signal_entities }}"
+              data:
+                message: "{{ signal_message }}"
+      default:
+        - service: "{{ signal_service }}"
+          data:
+            message: "{{ signal_message }}"
+            target: "{{ notify_signal_recipients }}"
+            data:
+              urls:
+                - "{{ base_url }}/api/frigate/notifications/{{ id }}/thumbnail.jpg"
 - delay: '{{ input_cooldown }}'
 mode: single

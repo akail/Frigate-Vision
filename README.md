@@ -6,6 +6,8 @@
 
 Introducing **Frigate Vision**; a blueprint designed to bring intelligent notifications and AI object recognition to your Home Assistant setup, powered by Frigate, LLMVision, and Home Assistant.
 
+> **Note:** This fork sends notifications over **Signal only**. Home Assistant mobile app support has been removed; if you want push notifications to a phone, use [the original](https://community.home-assistant.io/t/frigate-mobile-app-notifications-2-0/559732) instead.
+
 ---
 
 **📄 Get the Blueprint:**
@@ -19,18 +21,16 @@ Introducing **Frigate Vision**; a blueprint designed to bring intelligent notifi
 * **🚨 Listens for new Frigate detection events** from any camera you choose using MQTT
 * **🧠 Integrates with LLMVision** to enrich notifications with event summaries
 * **🕒 Enforces per-camera cooldowns** so you’re not spammed when a squirrel does laps in your yard
-* **📱 Pushes mobile notifications** with custom text, camera names, and optional sublabels (e.g., who or what was recognized)
-* **💬 Optional Signal notifications** alongside (or instead of) the mobile app
+* **💬 Sends Signal messages** with custom text, camera names, and optional sublabels (e.g., who or what was recognized)
+* **🖼️ Attaches the event thumbnail** directly to the message, with a link to the full clip in the body
 * **🧩 Uses input helpers** so you can easily reuse this blueprint across cameras without editing YAML
-* **🎛️ Multiple notification devices** now available
-* **🐛 Debug mode** lets you preview all variables and logic without sending notifications
 
 ---
 
 ### 🛠️ Why I Built It:
 I’ve used @SgtBatten’s reworked Frigate notifications for years and finally decided to break it down and recreate it to my liking. It started out as a fun project, but once I discovered **LLMVision** and the ability to generate dynamic event summaries from clips, I was *hooked*.
 
-I’ve since spent time crafting what I felt was the ultimate smart notification setup for me. The blueprint includes 3 built-in notification actions and is currently optimized for Android (with iOS support planned). This is still a **beta version**, but it’s what I’d call *mostly complete*—and I’m already planning to add more customization options like SgtBatten’s original in future releases.
+I’ve since spent time crafting what I felt was the ultimate smart notification setup for me. This fork drops the mobile app path entirely and delivers everything over Signal. This is still a **beta version**, but it’s what I’d call *mostly complete*.
 
 
 ---
@@ -39,18 +39,17 @@ I’ve since spent time crafting what I felt was the ultimate smart notification
 
 * [Frigate installed](https://docs.frigate.video/integrations/home-assistant/) with MQTT events enabled
 * [LLMVision](https://llmvision.org/) installed and configured
-* Home Assistant mobile app (for push notifications)
+* [Signal Messenger](https://www.home-assistant.io/integrations/signal_messenger/) configured as a notify platform
 * An input_boolean helper for multi-camera queuing
-* A dashboard to use as a landing page ( LLMVision event summary suggested )
-* *(Optional)* [Signal Messenger](https://www.home-assistant.io/integrations/signal_messenger/) if you want Signal notifications
+* A publicly reachable Home Assistant URL, so the clip links in messages resolve
 
 ---
 
 ### 💬 Signal Notifications
 
-Signal is entirely optional; leave the Signal fields blank and the blueprint only uses the mobile app. When enabled, you get the same three notifications the mobile app does: initial detection, mid-event updates, and the final AI summary.
+Signal is the only notification channel. You get up to three messages per event: initial detection, mid-event updates, and the final AI summary.
 
-**Signal is off unless you fill in *Signal Service Name*.** Listing recipients on their own does nothing.
+**Nothing is sent unless you fill in *Signal Service Name*.** Listing recipients on their own does nothing.
 
 #### Setup
 
@@ -69,13 +68,35 @@ notify:
 
 In the blueprint, set **Signal Service Name** to `signal` (the `name:` you used above, with or without the `notify.` prefix). That's it, no recipients needed; messages go to the `recipients:` already configured on the platform. Use **Signal Notification Recipients** only when you want to override that list for this automation.
 
-The event snapshot is attached to the message.
+Set **Home Assistant Public URL** to a domain reachable from outside your LAN. It builds the `Clip:` link in every message.
 
 #### Why is this a text field and not a dropdown?
 
 Signal Messenger is a *legacy* notify platform: it registers a `notify.<name>` action but creates no entity. Home Assistant has no selector that can enumerate notify actions ([WTH is there no notify selector](https://community.home-assistant.io/t/wth-is-there-no-notify-selector/467457)), and an entity picker filtered to the `notify` domain would list unrelated things like your phone while never showing Signal. So the service name is typed by hand.
 
+#### Images and clips
+
+The **thumbnail is a genuine attachment** — Home Assistant downloads it and hands the bytes to Signal, so it renders inline. The **clip is a link**, not an attachment: `signal_messenger` caps downloads at 50 MB and raises past that, which would take the whole message down with it. A link always works regardless of clip length.
+
 ---
+
+### ⏱️ What arrives, and when
+
+```
+detection  ->  [1] initial message      thumbnail + clip link
+               [2] update messages      sent whenever the snapshot or
+                                        sublabel changes, 0 or more times
+  event end
+     +30s  ->  LLMVision analyses the clip (queued behind other cameras
+               via the input_boolean helper, 3 minute max wait)
+           ->  [3] AI summary           thumbnail + clip link
+           ->  cooldown delay
+```
+
+Two behaviours worth knowing:
+
+* The blueprint runs `mode: single`, and the cooldown is a delay at the *end* of the run. The automation is therefore busy for the whole event plus analysis plus cooldown, and new events on that camera are dropped during that window. Use one automation per camera.
+* If another camera holds the LLMVision lock for more than 3 minutes, the run stops before the AI summary. You still get messages [1] and [2], but not [3].
 
 ### 🧠 TL;DR:
 

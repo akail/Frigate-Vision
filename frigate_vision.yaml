@@ -1,9 +1,9 @@
 blueprint:
   name: FrigateVision
-  description: 'This blueprint sends notifications for Frigate events, with optional
-    LLM clip analysis, Android/iOS support, and extended logic for loitering or sublabel
-    changes. Supports notification cooldown, custom icons, click actions, and dynamic
-    message formatting.
+  description: 'This blueprint sends Signal notifications for Frigate events, with
+    optional LLM clip analysis and extended logic for loitering or sublabel changes.
+    The event thumbnail is attached to each message and a link to the clip is included
+    in the body. Supports notification cooldown and dynamic message formatting.
 
     '
   domain: automation
@@ -49,13 +49,17 @@ blueprint:
           duration:
             enable_day: true
 
-      notify_device:
-        name: Mobile Device
-        description: Select the phone or tablet (with the Home Assistant app) to receive the notification.
+      base_url:
+        name: Home Assistant Public URL
+        description: >-
+          Public domain or IP of your Home Assistant server, without a trailing
+          slash (e.g. https://ha.example.com). Used to build the clip link
+          included in every Signal message, so it must be reachable from
+          wherever you read Signal.
+        default: https://your.ddns
         selector:
-          device:
-            integration: mobile_app
-            multiple: true
+          text: {}
+
       notify_signal_service:
         name: Signal Service Name
         description: >-
@@ -82,14 +86,7 @@ blueprint:
         icon: mdi:message-alert
         description: Configure optional nofitication features
         collapsed: true
-        input:        
-          ios_live_view:
-            name: iOS Notification
-            description: Enable if the target device runs iOS for enhanced notification support.
-            default: false
-            selector:
-              boolean: {}
-              
+        input:
           append:
             name: Append Camera
             description: Add the word "Camera" to the end of the camera name (e.g., "Back Yard" becomes "Back Yard Camera").
@@ -103,14 +100,7 @@ blueprint:
             default: false
             selector:
               boolean: {}
-    
-          dashboard:
-            name: Event Summary Dashboard
-            description: URI to open when the "View Summary" action is clicked.
-            default:
-            selector:
-              text: {}
-              
+
       llmvision_tweaks:
         name: LLMVision Tweaks
         icon: mdi:brain
@@ -236,39 +226,14 @@ blueprint:
             selector:
               boolean: {}          
 
-          base_url:
-            name: External Base URL
-            description: Public domain or IP of your Home Assistant server for accessing media externally.
-            default: https://your.ddns
-            selector:
-              text: {}
-
           local_url:
             name: Internal Base URL
             description: Local IP address of your Home Assistant instance.
             default: http://192.168.250.1
             selector:
               text: {}
-          debug:
-            name: Debugging
-            description: Enable debug logging for this automation.
-            default: false
-            selector:
-              boolean: {}
-              
-          notification_timeout:
-            name: Notification Timeout (minutes)
-            description: Time before Android automatically clears the notification
-            default: 10
-            selector:
-              number:
-                min: 1.0
-                max: 120.0
-                step: 1.0
-                unit_of_measurement: minutes
-                mode: slider
 
-  source_url: https://github.com/zacharyd3/Frigate-Vision/blob/main/frigate_vision.yaml
+  source_url: https://github.com/akail/Frigate-Vision/blob/main/frigate_vision.yaml
 trigger_variables:
   input_camera: !input camera
   camera: '{{ input_camera | replace(''camera.'', '''') }}'
@@ -283,7 +248,6 @@ condition:
 actions:
 - variables:
     input_append: !input append
-    input_dashboard: !input dashboard
     input_expand: !input expand
     input_provider: !input provider
     input_frigate_retry_attempts: !input frigate_retry_attempts
@@ -294,8 +258,6 @@ actions:
 
       '
     input_max_frames: !input max_frames
-    input_notification_timeout: !input notification_timeout
-    input_ios_live_view: !input ios_live_view
     input_include_filename: !input include_filename
     input_generate_title: !input generate_title
     input_expose_images: !input expose_images
@@ -307,14 +269,12 @@ actions:
     input_sublabel: !input sublabel
     input_cooldown: !input cooldown
     input_helper: !input helper
-    input_debug: !input debug
     input_base_url: !input base_url
     input_local_url: !input local_url
     input_labels: !input labels
     labels: '{{ input_labels | list | lower }}'
     object: '{{ trigger.payload_json[''after''][''label''] }}'
     label: '{{ object | title }}'
-    raw_device: !input notify_device
     notify_signal_recipients: !input notify_signal
     input_notify_signal_service: !input notify_signal_service
     signal_service: "{{ 'notify.' ~ (input_notify_signal_service | trim | replace('notify.',
@@ -333,53 +293,13 @@ actions:
     id: '{{ trigger.payload_json[''after''][''id''] }}'
     initial_entered_zones: '{{ trigger.payload_json[''after''][''entered_zones'']
       |lower}}'
-    icon: mdi:{{'account-outline' if label == 'Person' else 'dog' if label == 'Dog'
-      else 'cat' if label == 'Cat' else 'car' if label == 'Car' else 'home-assistant'}}
     clip_url: '{{base_url}}/api/frigate/notifications/{{id}}/{{camera}}/clip.mp4'
     snapshot_url: '{{base_url}}/api/frigate/notifications/{{id}}/snapshot.jpg'
     update_thumbnail: true
-    alert_once: true
 - condition: template
   value_template: '{{ not labels|length or object in labels }}
 
     '
-- repeat:
-    for_each: '{{ raw_device }}'
-    sequence:
-      - variables:
-          input_notify_device: '{{ ''notify.mobile_app_'' ~ (device_attr(repeat.item, ''name'')
-            | lower | replace('' '', ''_'') | replace("''", '''') | replace("’", '''') |
-            replace(''`'', '''') | replace(''"'', '''') | trim) }}'
-      - service: '{{ input_notify_device }}'
-        data:
-          title: '{{ title }}'
-          message: '{{ message }}'
-          data:
-            channel: '{{ camera_name }} Notifications'
-            timeout: '{{ input_notification_timeout * 60 | int }}'
-            tag: '{{ id }}'
-            group: '{{ camera_name }}'
-            notification_icon: '{{ icon }}'
-            data:
-              ttl: 0
-              priority: high
-            attachment:
-              url: /api/frigate/notifications/{{ id }}/thumbnail.jpg
-            image: /api/frigate/notifications/{{ id }}/thumbnail.jpg?format=android
-            clickAction: '{{ base_url }}/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
-            push:
-              interruption-level: active
-            alert_once: '{{ alert_once }}'
-            actions:
-              - action: URI
-                title: View Clip
-                uri: '{{ base_url }}/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
-              - action: URI
-                title: View Summary
-                uri: '{{ input_dashboard }}'
-              - action: URI
-                title: Open Frigate
-                uri: '{{ base_url }}:8971/review'
 - alias: Signal - Initial Detection
   if:
     - condition: template
@@ -391,8 +311,6 @@ actions:
           {{ message }}
 
           Clip: {{ clip_url }}
-          {% if input_dashboard %}Summary: {{ input_dashboard }}
-          {% endif %}
         target: "{{ notify_signal_recipients }}"
         data:
           urls:
@@ -414,83 +332,14 @@ actions:
           }}'
         sub_label: '{{ event[''after''][''sub_label'']}}'
         sub_label_changed: '{{ sub_label != event[''before''][''sub_label''] }}'
-        update: '{{ alert_once or (new_snapshot and not sub_label_changed) }}'
         title: "{% if sub_label %}\n  {{ sub_label | join(', ') }} was detected on the {{ camera_name }}.\n{% endif %}"
         message: "{% if sub_label %}\n{%else%} A {{ label }} was detected on the {{ camera_name }}.{%endif%}"
-    - choose:
-        - conditions:
-            - condition: template
-              value_template: "{{ input_debug }}"
-          sequence:
-            - service: logbook.log
-              data_template:
-                name: Frigate Notification
-                message: >
-                  DEBUG (in loop): 
-                    Info: 
-                      Last Zones: {{last_zones}}, 
-                      Current zones: {{entered_zones}}, 
-                      sublabel: {{sub_label}},
-                      IOS sound: {{update if not critical else 'yes due critical notifications'}},
-                      Android Sound: {{'disabled by alert once' if alert_once else 'enabled'}},
-                    Triggers: 
-                      New Snapshot: {{new_snapshot}}, 
-                      Presence Changed: {{presence_changed}}, 
-                      stationary moved: {{stationary_moved}}, 
-                      entered zones changed: {{entered_zones_changed}}, 
-                      sublabel changed: {{sub_label_changed}},
-                    Conditions: 
-                      Loitering: {{loitering}}
-                        or 
-                      Presence Entity not home: {{'ON' if presence_entity != '' else 'OFF'}} - {{'PASS' if not home else 'FAIL'}}, 
-                      zone filter TEST: {{'ON' if zone_only else 'OFF'}} - {{'PASS' if zone_filter else 'FAIL'}}, 
-                      multi-zone filter: {{'OFF' if not zone_only or not zone_multi else 'ON'}} - {{'PASS' if not zone_only or not zone_multi or ( entered_zones|length and zones and zones |reject('in', entered_zones) |list |length == 0 ) else 'FAIL'}}, 
-                      state filter TEST: {{'ON' if state_only else 'OFF'}} - {{'PASS' if state_true else 'FAIL'}}
-
-                    image: "/api/frigate{{client_id}}/notifications/{{id}}/{{attachment}}.jpg?format=android"
     - alias: Notify on loitering or significant change
       choose:
       - conditions:
         - condition: template
           value_template: '{{new_snapshot or sub_label_changed}}'
         sequence:
-        - repeat:
-            for_each: '{{ raw_device }}'
-            sequence:
-              - variables:
-                  input_notify_device: '{{ ''notify.mobile_app_'' ~ (device_attr(repeat.item, ''name'')
-                    | lower | replace('' '', ''_'') | replace("''", '''') | replace("’", '''') |
-                    replace(''`'', '''') | replace(''"'', '''') | trim) }}'
-              - service: '{{ input_notify_device }}'
-                data:
-                  title: '{{ title }}'
-                  message: '{{ message }}'
-                  data:
-                    channel: '{{ camera_name }} Notifications'
-                    timeout: '{{ input_notification_timeout * 60 | int }}'
-                    tag: '{{ id }}'
-                    group: '{{ camera_name }}'
-                    data:
-                      ttl: 0
-                      priority: high
-                    notification_icon: '{{ icon }}'
-                    attachment:
-                      url: /api/frigate/notifications/{{ id }}/thumbnail.jpg
-                    image: /api/frigate/notifications/{{ id }}/thumbnail.jpg?format=android
-                    clickAction: '{{ base_url }}/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
-                    push:
-                      interruption-level: active
-                    alert_once: '{{ alert_once }}'
-                    actions:
-                      - action: URI
-                        title: View Clip
-                        uri: '{{ base_url }}/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
-                      - action: URI
-                        title: View Summary
-                        uri: '{{ input_dashboard }}'
-                      - action: URI
-                        title: Open Frigate
-                        uri: '{{ base_url }}:8971/review'
         - alias: Signal - Update Notification
           if:
             - condition: template
@@ -502,8 +351,6 @@ actions:
                   {% if title %}{{ title }}{% else %}{{ message }}{% endif %}
 
                   Clip: {{ clip_url }}
-                  {% if input_dashboard %}Summary: {{ input_dashboard }}
-                  {% endif %}
                 target: "{{ notify_signal_recipients }}"
                 data:
                   urls:
@@ -568,48 +415,6 @@ actions:
     entity_id: !input helper
 - variables:
     message: '{{ response.response_text }}'
-- repeat:
-    for_each: '{{ raw_device }}'
-    sequence:
-      - variables:
-          input_notify_device: '{{ ''notify.mobile_app_'' ~ (device_attr(repeat.item, ''name'')
-            | lower | replace('' '', ''_'') | replace("''", '''') | replace("’", '''') |
-            replace(''`'', '''') | replace(''"'', '''') | trim) }}'
-      - service: '{{ input_notify_device }}'
-        data:
-          title: '{{ title }}'
-          message: '{{ message }}'
-          data:
-            channel: '{{ camera }}_notifications'
-            timeout: '{{ input_notification_timeout * 60 | int }}'
-            tag: '{{ id }}'
-            group: '{{ camera_name }}'
-            notification_icon: '{{ icon }}'
-            data:
-              ttl: 0
-              priority: high
-            attachment:
-              url: >
-                {% if input_ios_live_view %}
-                  {{ base_url }}/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4?sign=true
-                {% else %}
-                  /api/frigate/notifications/{{ id }}/thumbnail.jpg
-                {% endif %}
-            image: /api/frigate/notifications/{{ id }}/thumbnail.jpg?format=android
-            clickAction: '{{ base_url }}/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
-            push:
-              interruption-level: active
-            alert_once: '{{ alert_once }}'
-            actions:
-              - action: URI
-                title: View Clip
-                uri: '{{ base_url }}/api/frigate/notifications/{{ id }}/{{ camera }}/clip.mp4'
-              - action: URI
-                title: View Summary
-                uri: '{{ input_dashboard }}'
-              - action: URI
-                title: Open Frigate
-                uri: '{{ base_url }}:8971/review'
 - alias: Signal - Final AI Summary
   if:
     - condition: template
@@ -621,8 +426,6 @@ actions:
           {{ message }}
 
           Clip: {{ clip_url }}
-          {% if input_dashboard %}Summary: {{ input_dashboard }}
-          {% endif %}
         target: "{{ notify_signal_recipients }}"
         data:
           urls:

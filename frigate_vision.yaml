@@ -366,6 +366,12 @@ actions:
     entity_id: !input helper
     state: 'on'
   then:
+  # continue_on_timeout must stay true. The helper is a lock with no crash-safe
+  # release: an HA restart, a blueprint re-import, or an error in the analyze
+  # call below can all strand it 'on' forever. Aborting here would mean this
+  # automation silently stops notifying until someone resets the helper by hand.
+  # Proceeding after the timeout risks two concurrent analyses instead, which is
+  # the far cheaper failure.
   - wait_for_trigger:
     - platform: state
       entity_id: !input helper
@@ -376,7 +382,7 @@ actions:
       minutes: 3
       seconds: 0
       milliseconds: 0
-    continue_on_timeout: false
+    continue_on_timeout: true
 - action: input_boolean.turn_on
   metadata: {}
   data: {}
@@ -410,11 +416,21 @@ actions:
       }} has been identified, use this knowledge as well.\n{% endif %}\n"
   response_variable: response
   enabled: true
+  # Without this, any failure in the analyze call skips the turn_off below and
+  # strands the lock 'on'. Errors are surfaced in the notification instead, via
+  # the fallback message.
+  continue_on_error: true
 - action: input_boolean.turn_off
   target:
     entity_id: !input helper
 - variables:
-    message: '{{ response.response_text }}'
+    # response is undefined if the action above errored, and response_text is
+    # not guaranteed to be present even on success.
+    summary: "{{ response.response_text | default('', true) | trim if response is
+      defined else '' }}"
+- variables:
+    message: '{{ summary if summary else ''A '' ~ label ~ '' was detected on the ''
+      ~ camera_name | trim ~ '', but the AI summary could not be generated.'' }}'
 - alias: Signal - Final AI Summary
   if:
     - condition: template
